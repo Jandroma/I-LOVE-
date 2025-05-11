@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atrapa Corazones - Completa la Palabra ALEX</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffcccb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      flex-direction: column;
+    }
+    canvas {
+      border: 2px solid #000;
+    }
+    .score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      color: white;
+    }
+    .word {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      color: black;
+      font-weight: bold;
+    }
+    .message {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 40px;
+      color: #ff69b4;
+      font-weight: bold;
+      display: none;
+      text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+    }
+    .hint {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 18px;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div class="score" id="score">Puntos: 0</div>
+  <div class="word" id="word">_ _ _ _</div>
+  <div class="hint" id="hint">Te faltan 10 puntos para una letra</div>
+  <div class="message" id="message">
+    <div>❤️ ALEX ❤️</div>
+    <div>by Jandro</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const wordElement = document.getElementById('word');
+    const messageElement = document.getElementById('message');
+    const hintElement = document.getElementById('hint');
+
+    const player = {
+      x: canvas.width / 2 - 25,
+      y: canvas.height - 50,
+      width: 50,
+      height: 50,
+      speed: 5,
+      dx: 0
+    };
+
+    const hearts = [];
+    let score = 0;
+    let word = ['', '', '', '']; // Almacena las letras de "ALEX"
+    let gameOver = false;
+    let nextLetterAt = 10; // La primera letra aparece después de 10 puntos
+
+    // Función para actualizar la posición del jugador
+    function movePlayer() {
+      player.x += player.dx;
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    }
+
+    // Función para dibujar el jugador
+    function drawPlayer() {
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(player.x + player.width / 2, player.y + player.height / 2, player.width / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Función para generar corazones
+    function generateHearts() {
+      if (Math.random() < 0.02) {
+        hearts.push({
+          x: Math.random() * (canvas.width - 20) + 10,
+          y: -20,
+          speed: Math.random() * 2 + 2
+        });
+      }
+    }
+
+    // Función para actualizar la posición de los corazones
+    function updateHearts() {
+      hearts.forEach((heart, index) => {
+        heart.y += heart.speed;
+        if (heart.y > canvas.height) hearts.splice(index, 1);
+        if (heart.y + 30 >= player.y && heart.y <= player.y + player.height && heart.x >= player.x && heart.x <= player.x + player.width) {
+          hearts.splice(index, 1);
+          addLetter();
+          score++;
+        }
+      });
+    }
+
+    // Función para agregar letras a la palabra "ALEX"
+    function addLetter() {
+      if (score >= nextLetterAt && nextLetterAt <= 40) {
+        for (let i = 0; i < word.length; i++) {
+          if (word[i] === '') {
+            word[i] = 'ALEX'[i];
+            break;
+          }
+        }
+        nextLetterAt += 10;
+      }
+
+      wordElement.textContent = word.join(' ');
+
+      if (word.join('') === 'ALEX' || score >= 40) {
+        endGame();
+      }
+    }
+
+    // Mostrar mensaje final
+    function showCredits() {
+      messageElement.style.display = 'block';
+      setTimeout(() => {
+        messageElement.style.display = 'none';
+        resetGame();
+      }, 5000);
+    }
+
+    // Función para reiniciar el juego
+    function resetGame() {
+      score = 0;
+      word = ['', '', '', ''];
+      hearts.length = 0;
+      player.x = canvas.width / 2 - 25;
+      player.y = canvas.height - 50;
+      gameOver = false;
+      nextLetterAt = 10;
+      update();
+    }
+
+    // Función para terminar el juego
+    function endGame() {
+      gameOver = true;
+      showCredits();
+    }
+
+    // Función de actualización del juego
+    function update() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      movePlayer();
+
+      generateHearts();
+      updateHearts();
+
+      drawPlayer();
+      hearts.forEach(drawHeart);
+
+      scoreElement.textContent = `Puntos: ${score}`;
+
+      // Actualizar el contador de puntos para la letra siguiente
+      if (score < nextLetterAt) {
+        hintElement.textContent = `Te faltan ${nextLetterAt - score} puntos para una letra`;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Función para dibujar un corazón con colores brillantes
+    function drawHeart(heart) {
+      ctx.beginPath();
+      ctx.moveTo(heart.x, heart.y);
+      ctx.lineTo(heart.x + 20, heart.y + 30);
+      ctx.lineTo(heart.x - 20, heart.y + 30);
+      ctx.closePath();
+      ctx.fillStyle = 'hsl(' + Math.random() * 360 + ', 100%, 70%)'; // Colores brillantes aleatorios
+      ctx.fill();
+    }
+
+    // Eventos para controlar el movimiento
+    document.addEventListener('touchstart', (e) => {
+      const touchX = e.touches[0].clientX;
+      if (touchX < canvas.width / 2) {
+        player.dx = -player.speed; // Movimiento hacia la izquierda
+      } else {
+        player.dx = player.speed; // Movimiento hacia la derecha
+      }
+    });
+
+    document.addEventListener('touchend', () => {
+      player.dx = 0; // Detener inmediatamente cuando dejas de tocar
+    });
+
+    // Iniciar el juego
+    update();
+  </script>
+</body>
+</html>
